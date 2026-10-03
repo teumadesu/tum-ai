@@ -277,17 +277,31 @@
             }, 300);
         }
 
+        // 🧠 AIの思考エンジン（複数の知識にマッチするかどうかを判定して組み合わせる）
         function thinkAiResponse(userText) {
             const lower = userText.toLowerCase();
+            let matchedAnswers = [];
 
+            // 登録されているすべての知識データをチェックし、部分一致するものをすべて拾う
             for (let item of appState.qaList) {
                 const qLower = item.question.toLowerCase();
+                // ユーザーの入力にキーワードが含まれているか、またはキーワードにユーザーの入力が含まれている場合
                 if (lower.includes(qLower) || qLower.includes(lower)) {
-                    let ans = item.answer;
-                    return { answer: ans, isUnknown: false };
+                    // すでに同じ答えが追加されていなければリストに追加
+                    if (!matchedAnswers.includes(item.answer)) {
+                        matchedAnswers.push(item.answer);
+                    }
                 }
             }
 
+            // 何かしらの知識（挨拶やキーワード）にヒットした場合
+            if (matchedAnswers.length > 0) {
+                // ヒットした複数の答えを自然につなぎ合わせる
+                let combinedAnswer = matchedAnswers.join(" ");
+                return { answer: combinedAnswer, isUnknown: false };
+            }
+
+            // 一つもヒットしなかった場合（未知の質問）
             lastUnknownQuestion = userText;
             return {
                 answer: appState.config.fallback,
