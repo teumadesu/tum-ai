@@ -52,7 +52,7 @@
 <body class="p-4 min-h-screen flex flex-col">
 
     <header class="windows-box p-2 mb-4 flex justify-between items-center bg-blue-900 text-white font-bold text-sm">
-        <div>AI育成 [Ver.1.0_beta]</div>
+        <div>AI育成 [Ver.1.1]</div>
         <button onclick="openExportModal()" class="windows-button px-2 py-1 text-black text-xs">学習データの出力・管理</button>
     </header>
 
@@ -277,31 +277,25 @@
             }, 300);
         }
 
-        // 🧠 AIの思考エンジン（複数の知識にマッチするかどうかを判定して組み合わせる）
+        // 🧠 複数キーワード対応の思考エンジン
         function thinkAiResponse(userText) {
             const lower = userText.toLowerCase();
             let matchedAnswers = [];
 
-            // 登録されているすべての知識データをチェックし、部分一致するものをすべて拾う
             for (let item of appState.qaList) {
                 const qLower = item.question.toLowerCase();
-                // ユーザーの入力にキーワードが含まれているか、またはキーワードにユーザーの入力が含まれている場合
                 if (lower.includes(qLower) || qLower.includes(lower)) {
-                    // すでに同じ答えが追加されていなければリストに追加
                     if (!matchedAnswers.includes(item.answer)) {
                         matchedAnswers.push(item.answer);
                     }
                 }
             }
 
-            // 何かしらの知識（挨拶やキーワード）にヒットした場合
             if (matchedAnswers.length > 0) {
-                // ヒットした複数の答えを自然につなぎ合わせる
                 let combinedAnswer = matchedAnswers.join(" ");
                 return { answer: combinedAnswer, isUnknown: false };
             }
 
-            // 一つもヒットしなかった場合（未知の質問）
             lastUnknownQuestion = userText;
             return {
                 answer: appState.config.fallback,
