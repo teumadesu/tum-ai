@@ -1,0 +1,374 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TUM-AI</title>
+    <!-- Tailwind CSS (必要最低限のみ使用) -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* 平成のWindows風カスタムCSS */
+        body {
+            background-color: #c0c0c0;
+            font-family: monospace;
+            color: #000000;
+        }
+        .windows-box {
+            background-color: #ece9d8;
+            border-top: 2px solid #ffffff;
+            border-left: 2px solid #ffffff;
+            border-right: 2px solid #808080;
+            border-bottom: 2px solid #808080;
+            box-shadow: 2px 2px 0px #000000;
+        }
+        .windows-button {
+            background-color: #ece9d8;
+            border-top: 2px solid #ffffff;
+            border-left: 2px solid #ffffff;
+            border-right: 2px solid #404040;
+            border-bottom: 2px solid #404040;
+            font-family: monospace;
+            font-weight: bold;
+            cursor: pointer;
+        }
+        .windows-button:active {
+            border-top: 2px solid #404040;
+            border-left: 2px solid #404040;
+            border-right: 2px solid #ffffff;
+            border-bottom: 2px solid #ffffff;
+            padding-top: 3px;
+            padding-left: 3px;
+        }
+        .windows-input {
+            background-color: #ffffff;
+            border-top: 2px solid #808080;
+            border-left: 2px solid #808080;
+            border-right: 2px solid #ffffff;
+            border-bottom: 2px solid #ffffff;
+            font-family: monospace;
+        }
+    </style>
+</head>
+<body class="p-4 min-h-screen flex flex-col">
+
+    <header class="windows-box p-2 mb-4 flex justify-between items-center bg-blue-900 text-white font-bold text-sm">
+        <div>AI育成 [Ver.1.0_beta]</div>
+        <button onclick="openExportModal()" class="windows-button px-2 py-1 text-black text-xs">学習データの出力・管理</button>
+    </header>
+
+    <main class="flex-1 grid grid-cols-1 md:grid-cols-12 gap-4 max-w-6xl mx-auto w-full">
+        
+        <section class="md:col-span-6 windows-box p-4 flex flex-col space-y-4 text-xs">
+            <h2 class="bg-blue-800 text-white p-1 font-bold">■ AIの設定 ＆ 知識・学習管理</h2>
+
+            <!-- AIの設定 -->
+            <div class="border border-gray-400 p-3 space-y-2 bg-gray-100">
+                <div class="font-bold text-blue-900">[1] AIの基本プロフィール・性格</div>
+                <div>
+                    <label class="block">AIの名前:</label>
+                    <input type="text" id="ai-name" class="windows-input w-full p-1 text-xs" value="AIアシスタント">
+                </div>
+                <div>
+                    <label class="block">AIのアバター（アイコン絵文字）:</label>
+                    <input type="text" id="ai-avatar" class="windows-input w-16 p-1 text-xs text-center" value="🤖">
+                </div>
+                <div>
+                    <label class="block">AIの性格・口調設定:</label>
+                    <textarea id="ai-personality" rows="2" class="windows-input w-full p-1 text-xs">丁寧で親しみやすいAI。わかりやすく簡潔に答える。</textarea>
+                </div>
+                <div>
+                    <label class="block">知らない質問をされた時のデフォルト返事:</label>
+                    <input type="text" id="ai-fallback" class="windows-input w-full p-1 text-xs" value="すみません、その知識データはありません。教えていただけると嬉しいです。">
+                </div>
+                <button onclick="applyProfileSettings()" class="windows-button px-3 py-1 bg-gray-200 text-black w-full">設定を反映する</button>
+            </div>
+
+            <!-- 知識の追加 -->
+            <div class="border border-gray-400 p-3 space-y-2 bg-gray-100">
+                <div class="font-bold text-emerald-900">[2] 新しい知識を教える (現在:<span id="qa-count">0</span>件)</div>
+                <div>
+                    <label class="block">質問・キーワード:</label>
+                    <input type="text" id="qa-question" class="windows-input w-full p-1 text-xs" placeholder="例: お腹すいた、こんにちは">
+                </div>
+                <div>
+                    <label class="block">AIの答え:</label>
+                    <textarea id="qa-answer" rows="2" class="windows-input w-full p-1 text-xs" placeholder="例: 何か美味しいものを食べましょう！"></textarea>
+                </div>
+                <button onclick="addQaItem()" class="windows-button px-3 py-1 bg-green-200 text-black w-full font-bold">知識をメモリに書き込む</button>
+            </div>
+
+            <!-- 記憶リスト -->
+            <div class="flex-1 border border-gray-400 p-2 bg-white overflow-y-auto max-h-48 space-y-1" id="qa-list">
+                <!-- 動的生成 -->
+            </div>
+        </section>
+
+        <section class="md:col-span-6 windows-box p-4 flex flex-col space-y-3 text-xs">
+            <h2 class="bg-blue-800 text-white p-1 font-bold flex items-center justify-between">
+                <span>■ AIへの質問・チャットテスト</span>
+                <span id="chat-status-name" class="text-yellow-300">AI稼働中</span>
+            </h2>
+
+            <!-- チャット表示エリア -->
+            <div id="chat-messages" class="flex-1 windows-input p-3 overflow-y-auto space-y-3 bg-white min-h-[300px] max-h-[400px]">
+                <!-- 初期メッセージ -->
+            </div>
+
+            <!-- 質問入力フォーム -->
+            <form id="chat-form" onsubmit="handleChatSubmit(event)" class="flex space-x-2">
+                <input type="text" id="chat-input" class="windows-input flex-1 p-2 text-xs" placeholder="ここに質問を入力して送信ボタンを押してね...">
+                <button type="submit" class="windows-button px-4 py-2 bg-blue-200 text-black">送信</button>
+            </form>
+        </section>
+
+    </main>
+
+    <div id="export-modal" class="fixed inset-0 bg-black/50 hidden flex items-center justify-center p-4">
+        <div class="windows-box p-4 max-w-md w-full bg-[#ece9d8] space-y-3 text-xs">
+            <div class="bg-blue-800 text-white p-1 font-bold flex justify-between">
+                <span>AI学習データファイル管理</span>
+                <button onclick="closeExportModal()" class="text-white font-bold px-1">×</button>
+            </div>
+            <div>
+                <label class="block mb-1">出力ファイル名:</label>
+                <input type="text" id="export-filename" class="windows-input w-full p-1" value="my_ai_data">
+            </div>
+            <button onclick="exportJsonFile()" class="windows-button w-full p-2 bg-blue-100">学習データをJSONファイルとして出力する</button>
+            <hr class="border-gray-400">
+            <label class="windows-button w-full p-2 block text-center bg-green-100 cursor-pointer">
+                保存したAIファイルから読み込む
+                <input type="file" id="import-file-input" accept=".json" onchange="importJsonFile(event)" class="hidden">
+            </label>
+        </div>
+    </div>
+
+    <script>
+        let lastUnknownQuestion = "";
+
+        let appState = {
+            config: {
+                name: "AIアシスタント",
+                avatar: "🤖",
+                personality: "丁寧で親しみやすいAI。わかりやすく簡潔に答える。",
+                fallback: "すみません、その知識データはありません。教えていただけると嬉しいです。"
+            },
+            qaList: [
+                { id: "1", question: "こんにちは", answer: "こんにちは！システムは正常に稼働しています。" },
+                { id: "2", question: "自己紹介して", answer: "私はAIアシスタントです。いろいろ質問して知識を教えてくださいね。" }
+            ]
+        };
+
+        const STORAGE_KEY = "ai_studio_data_v1";
+
+        window.onload = function() {
+            loadLocalState();
+            renderAll();
+            initWelcome();
+        };
+
+        function loadLocalState() {
+            try {
+                const saved = localStorage.getItem(STORAGE_KEY);
+                if (saved) {
+                    const parsed = JSON.parse(saved);
+                    if (parsed.config && parsed.qaList) {
+                        appState.config = parsed.config;
+                        appState.qaList = parsed.qaList;
+                    }
+                }
+            } catch (e) {
+                console.error(e);
+            }
+        }
+
+        function saveLocalState() {
+            try {
+                localStorage.setItem(STORAGE_KEY, JSON.stringify(appState));
+            } catch (e) {
+                console.error(e);
+            }
+        }
+
+        function renderAll() {
+            document.getElementById('ai-name').value = appState.config.name;
+            document.getElementById('ai-avatar').value = appState.config.avatar;
+            document.getElementById('ai-personality').value = appState.config.personality;
+            document.getElementById('ai-fallback').value = appState.config.fallback;
+            document.getElementById('chat-status-name').textContent = appState.config.name + "稼働中";
+            renderQaList();
+        }
+
+        function renderQaList() {
+            const container = document.getElementById('qa-list');
+            document.getElementById('qa-count').textContent = appState.qaList.length;
+
+            if (appState.qaList.length === 0) {
+                container.innerHTML = '<div class="text-gray-500 text-center py-2">知識データはありません</div>';
+                return;
+            }
+
+            let html = '';
+            appState.qaList.forEach(item => {
+                html += `
+                    <div class="border border-gray-300 p-1.5 bg-gray-50 flex justify-between items-center">
+                        <div class="overflow-hidden pr-2">
+                            <b class="text-blue-800">Q: ${escapeHtml(item.question)}</b><br>
+                            <span class="text-gray-700">A: ${escapeHtml(item.answer)}</span>
+                        </div>
+                        <button onclick="deleteQa('${item.id}')" class="windows-button px-1.5 py-0.5 bg-red-100 text-red-700 text-[10px]">削除</button>
+                    </div>
+                `;
+            });
+            container.innerHTML = html;
+        }
+
+        function applyProfileSettings() {
+            appState.config.name = document.getElementById('ai-name').value.trim() || "AIアシスタント";
+            appState.config.avatar = document.getElementById('ai-avatar').value.trim() || "🤖";
+            appState.config.personality = document.getElementById('ai-personality').value.trim();
+            appState.config.fallback = document.getElementById('ai-fallback').value.trim();
+            saveLocalState();
+            renderAll();
+            alert("設定を保存しました！");
+        }
+
+        function addQaItem() {
+            const q = document.getElementById('qa-question').value.trim();
+            const a = document.getElementById('qa-answer').value.trim();
+            if (!q || !a) {
+                alert("質問と答えを入力してください！");
+                return;
+            }
+            appState.qaList.unshift({ id: 'q_' + Date.now(), question: q, answer: a });
+            saveLocalState();
+            renderQaList();
+            document.getElementById('qa-question').value = '';
+            document.getElementById('qa-answer').value = '';
+            alert("新しい知識をメモリに書き込みました！");
+        }
+
+        function deleteQa(id) {
+            appState.qaList = appState.qaList.filter(item => item.id !== id);
+            saveLocalState();
+            renderQaList();
+        }
+
+        function initWelcome() {
+            const container = document.getElementById('chat-messages');
+            container.innerHTML = `
+                <div class="p-2 bg-gray-100 border border-gray-300 rounded">
+                    <b>${appState.config.avatar} ${escapeHtml(appState.config.name)}:</b> 起動完了しました。何か質問してください！
+                </div>
+            `;
+        }
+
+        function handleChatSubmit(event) {
+            event.preventDefault();
+            const input = document.getElementById('chat-input');
+            const text = input.value.trim();
+            if (!text) return;
+
+            appendChat('user', 'あなた', text);
+            input.value = '';
+
+            setTimeout(() => {
+                const aiResult = thinkAiResponse(text);
+                appendChat('ai', appState.config.name, aiResult.answer, aiResult.isUnknown);
+            }, 300);
+        }
+
+        function thinkAiResponse(userText) {
+            const lower = userText.toLowerCase();
+
+            for (let item of appState.qaList) {
+                const qLower = item.question.toLowerCase();
+                if (lower.includes(qLower) || qLower.includes(lower)) {
+                    let ans = item.answer;
+                    return { answer: ans, isUnknown: false };
+                }
+            }
+
+            lastUnknownQuestion = userText;
+            return {
+                answer: appState.config.fallback,
+                isUnknown: true
+            };
+        }
+
+        function appendChat(sender, name, text, isUnknown = false) {
+            const container = document.getElementById('chat-messages');
+            let html = '';
+            if (sender === 'user') {
+                html = `<div class="p-2 bg-blue-50 border border-blue-200 text-right"><b>👤 あなた:</b> ${escapeHtml(text)}</div>`;
+            } else {
+                let teachBox = '';
+                if (isUnknown) {
+                    teachBox = `
+                        <div class="mt-1 pt-1 border-t border-gray-300 text-[11px] text-red-600 flex justify-between items-center">
+                            <span>💡 この質問の答えを知りませんか？</span>
+                            <button onclick="teachDirectly('${escapeHtml(lastUnknownQuestion).replace(/'/g, "\\'")}')" class="windows-button px-2 py-0.5 bg-yellow-200 text-black">今すぐ教える</button>
+                        </div>
+                    `;
+                }
+                html = `<div class="p-2 bg-gray-100 border border-gray-300"><b>${appState.config.avatar} ${escapeHtml(name)}:</b> ${escapeHtml(text)} ${teachBox}</div>`;
+            }
+            container.innerHTML += html;
+            container.scrollTop = container.scrollHeight;
+        }
+
+        function teachDirectly(qText) {
+            const ans = prompt(`「${qText}」に対するAIの正しい答えを入力してください：`);
+            if (ans) {
+                appState.qaList.unshift({ id: 'q_' + Date.now(), question: qText, answer: ans });
+                saveLocalState();
+                renderQaList();
+                alert("新しい知識を習得しました！もう一度質問してみてください。");
+            }
+        }
+
+        function openExportModal() {
+            document.getElementById('export-modal').classList.remove('hidden');
+        }
+
+        function closeExportModal() {
+            document.getElementById('export-modal').classList.add('hidden');
+        }
+
+        function exportJsonFile() {
+            const filename = (document.getElementById('export-filename').value.trim() || "my_ai") + ".json";
+            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(appState, null, 2));
+            const a = document.createElement('a');
+            a.href = dataStr;
+            a.download = filename;
+            a.click();
+            a.remove();
+        }
+
+        function importJsonFile(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = function(evt) {
+                try {
+                    const parsed = JSON.parse(evt.target.result);
+                    if (parsed.config && parsed.qaList) {
+                        appState = parsed;
+                        saveLocalState();
+                        renderAll();
+                        initWelcome();
+                        closeExportModal();
+                        alert("ファイルを読み込みました！");
+                    }
+                } catch (err) {
+                    alert("読み込みエラー");
+                }
+            };
+            reader.readAsText(file);
+        }
+
+        function escapeHtml(str) {
+            return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+        }
+    </script>
+</body>
+</html>
