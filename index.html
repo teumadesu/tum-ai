@@ -57,7 +57,7 @@
 
     <header class="windows-box p-2 mb-4 flex justify-between items-center bg-blue-900 text-white font-bold text-sm">
         <div class="flex items-center space-x-3">
-            <span>AI育成 [Ver.1.2]</span>
+            <span>AI育成 [Ver.1.3]</span>
             <a href="https://teumadesu.github.io/homepage/" target="_blank" class="windows-button px-2 py-0.5 text-black text-xs bg-gray-200">ホームページを開く</a>
         </div>
         <button onclick="openExportModal()" class="windows-button px-2 py-1 text-black text-xs">学習データの出力・管理</button>
@@ -284,16 +284,36 @@
             }, 300);
         }
 
-        // 🧠 複数キーワード対応の思考エンジン
+        // 🧠 あらゆる挨拶・キーワードに対応する思考エンジン (Ver.1.3)
         function thinkAiResponse(userText) {
             const lower = userText.toLowerCase();
             let matchedAnswers = [];
 
+            // 代表的な挨拶ワードのリスト（必要に応じてここから自動認識もします）
+            const greetingKeywords = ["こんにちは", "こんばんは", "おはよう", "はじめまして", "お疲れ様", "どうも", "やあ", "ハロー"];
+            
+            // ユーザーの入力に挨拶が含まれているかチェックし、登録されていれば挨拶の答えを強制的に追加する
+            let hasGreeting = greetingKeywords.some(g => lower.includes(g));
+
             for (let item of appState.qaList) {
                 const qLower = item.question.toLowerCase();
+                // ユーザーの入力にQのキーワードが含まれる、またはQにユーザーの入力が含まれる場合
                 if (lower.includes(qLower) || qLower.includes(lower)) {
                     if (!matchedAnswers.includes(item.answer)) {
                         matchedAnswers.push(item.answer);
+                    }
+                }
+            }
+
+            // もし挨拶の言葉が含まれていて、かつ「こんにちは」などの挨拶データがまだmatchedAnswersに入っていなければ、挨拶データを自動で探して追加する
+            if (hasGreeting) {
+                for (let item of appState.qaList) {
+                    const qLower = item.question.toLowerCase();
+                    if (greetingKeywords.some(g => qLower.includes(g))) {
+                        if (!matchedAnswers.includes(item.answer)) {
+                            matchedAnswers.unshift(item.answer); // 挨拶を先頭に持ってくる
+                            break;
+                        }
                     }
                 }
             }
