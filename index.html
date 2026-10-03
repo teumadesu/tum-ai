@@ -30,6 +30,10 @@
             font-family: monospace;
             font-weight: bold;
             cursor: pointer;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
         }
         .windows-button:active {
             border-top: 2px solid #404040;
@@ -52,7 +56,10 @@
 <body class="p-4 min-h-screen flex flex-col">
 
     <header class="windows-box p-2 mb-4 flex justify-between items-center bg-blue-900 text-white font-bold text-sm">
-        <div>AI育成 [Ver.1.1]</div>
+        <div class="flex items-center space-x-3">
+            <span>AI育成 [Ver.1.2]</span>
+            <a href="https://teumadesu.github.io/homepage/" target="_blank" class="windows-button px-2 py-0.5 text-black text-xs bg-gray-200">ホームページを開く</a>
+        </div>
         <button onclick="openExportModal()" class="windows-button px-2 py-1 text-black text-xs">学習データの出力・管理</button>
     </header>
 
@@ -69,7 +76,7 @@
                     <input type="text" id="ai-name" class="windows-input w-full p-1 text-xs" value="AIアシスタント">
                 </div>
                 <div>
-                    <label class="block">AIのアバター:</label>
+                    <label class="block">AIのアバター（アイコン絵文字）:</label>
                     <input type="text" id="ai-avatar" class="windows-input w-16 p-1 text-xs text-center" value="🤖">
                 </div>
                 <div>
