@@ -4,10 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>TUM-AI</title>
-    <!-- Tailwind CSS (必要最低限のみ使用) -->
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        /* 平成のWindows風カスタムCSS */
         body {
             background-color: #c0c0c0;
             font-family: monospace;
@@ -57,7 +55,7 @@
 
     <header class="windows-box p-2 mb-4 flex justify-between items-center bg-blue-900 text-white font-bold text-sm">
         <div class="flex items-center space-x-3">
-            <span>AI育成 [Ver.2.0 完全版]</span>
+            <span>TUM-AI学習 [V2.0]</span>
             <a href="https://teumadesu.github.io/homepage/" target="_blank" class="windows-button px-2 py-0.5 text-black text-xs bg-gray-200">ホームページを開く</a>
         </div>
         <button onclick="openExportModal()" class="windows-button px-2 py-1 text-black text-xs">学習データの出力・管理</button>
@@ -65,11 +63,9 @@
 
     <main class="flex-1 grid grid-cols-1 md:grid-cols-12 gap-4 max-w-7xl mx-auto w-full">
         
-        <!-- 左側：設定 ＆ 知識管理 -->
         <section class="md:col-span-4 windows-box p-4 flex flex-col space-y-4 text-xs">
             <h2 class="bg-blue-800 text-white p-1 font-bold">■ AIの設定 ＆ 知識・学習管理</h2>
 
-            <!-- AIの設定 -->
             <div class="border border-gray-400 p-3 space-y-2 bg-gray-100">
                 <div class="font-bold text-blue-900">[1] AIの基本プロフィール・性格</div>
                 <div>
@@ -81,12 +77,8 @@
                     <input type="text" id="ai-avatar" autocomplete="off" class="windows-input w-16 p-1 text-xs text-center" value="🤖">
                 </div>
                 <div>
-                    <label class="block">AIの性格・口調設定:</label>
-                    <textarea id="ai-personality" rows="2" autocomplete="off" class="windows-input w-full p-1 text-xs">丁寧で親しみやすいAI。わかりやすく簡潔に答える。</textarea>
-                </div>
-                <div>
                     <label class="block">知らない質問をされた時のデフォルト返事:</label>
-                    <input type="text" id="ai-fallback" autocomplete="off" class="windows-input w-full p-1 text-xs" value="すみません、その知識データはありません。教えていただけると嬉しいです。">
+                    <input type="text" id="ai-fallback" autocomplete="off" class="windows-input w-full p-1 text-xs" value="その知識データはありません。学習させてください。">
                 </div>
                 <button onclick="applyProfileSettings()" class="windows-button px-3 py-1 bg-gray-200 text-black w-full">設定を反映する</button>
             </div>
@@ -96,11 +88,11 @@
                 <div class="font-bold text-emerald-900">[2] 新しい知識を教える (現在:<span id="qa-count">0</span>件)</div>
                 <div>
                     <label class="block">質問・キーワード:</label>
-                    <input type="text" id="qa-question" autocomplete="off" class="windows-input w-full p-1 text-xs" placeholder="例: お腹すいた、こんにちは">
+                    <input type="text" id="qa-question" autocomplete="off" class="windows-input w-full p-1 text-xs" placeholder="例: ねむい、おなかすいた">
                 </div>
                 <div>
                     <label class="block">AIの答え:</label>
-                    <textarea id="qa-answer" rows="2" autocomplete="off" class="windows-input w-full p-1 text-xs" placeholder="例: 何か美味しいものを食べましょう！"></textarea>
+                    <textarea id="qa-answer" rows="2" autocomplete="off" class="windows-input w-full p-1 text-xs" placeholder="例: 寝ましょう！！"></textarea>
                 </div>
                 <button onclick="addQaItem()" class="windows-button px-3 py-1 bg-green-200 text-black w-full font-bold">知識をメモリに書き込む</button>
             </div>
@@ -124,8 +116,8 @@
         <!-- 右側：チャット画面 -->
         <section class="md:col-span-5 windows-box p-4 flex flex-col space-y-3 text-xs">
             <h2 class="bg-blue-800 text-white p-1 font-bold flex items-center justify-between">
-                <span id="current-chat-title">■ チャットルーム</span>
-                <span id="chat-status-name" class="text-yellow-300">AI稼働中</span>
+                <span id="current-chat-title">■ AI-チャットルーム</span>
+                <span id="chat-status-name" class="text-yellow-300">TUM-AI稼働中</span>
             </h2>
 
             <!-- チャット表示エリア -->
@@ -166,15 +158,14 @@
         let appState = {
             config: {
                 name: "AIアシスタント",
-                avatar: "🤖",
-                personality: "丁寧で親しみやすいAI。わかりやすく簡潔に答える。",
+                avatar: "🔷",
                 fallback: "すみません、その知識データはありません。教えていただけると嬉しいです。"
             },
             qaList: [
                 { id: "1", question: "こんにちは", answer: "こんにちは！システムは正常に稼働しています。" },
                 { id: "2", question: "自己紹介して", answer: "私はAIアシスタントです。いろいろ質問して知識を教えてくださいね。" }
             ],
-            sessions: [] // 複数のチャット履歴セッション（最大10件）
+            sessions: [] // 複数のチャット履歴(さいだい10)
         };
 
         let currentSessionId = null;
