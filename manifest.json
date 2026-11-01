@@ -1,10 +1,10 @@
 {
-  "name": "便利時計",
-  "short_name": "時計",
+  "name": "TUM-AI育成",
+  "short_name": "TUM-AI",
   "start_url": "./index.html",
   "display": "standalone",
-  "background_color": "#ffffff",
-  "theme_color": "#000000",
+  "background_color": "#0B0F19",
+"theme_color": "#0B0F19"　
   "icons": [
     {
       "src": "aikon.png",
