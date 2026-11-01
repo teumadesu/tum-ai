@@ -74,7 +74,7 @@
                 </div>
                 <div>
                     <label class="block">AIのアバター（アイコン絵文字）:</label>
-                    <input type="text" id="ai-avatar" autocomplete="off" class="windows-input w-16 p-1 text-xs text-center" value="🤖">
+                    <input type="text" id="ai-avatar" autocomplete="off" class="windows-input w-16 p-1 text-xs text-center" value="🔷">
                 </div>
                 <div>
                     <label class="block">知らない質問をされた時のデフォルト返事:</label>
@@ -325,7 +325,7 @@
                     if (msg.isUnknown) {
                         teachBox = `
                             <div class="mt-1 pt-1 border-t border-gray-300 text-[11px] text-red-600 flex justify-between items-center">
-                                <span>💡 この質問の答えを知りませんか？</span>
+                                <span>▼この質問の答えを知りませんか？▼</span>
                                 <button onclick="teachDirectly('${escapeHtml(msg.unknownQ).replace(/'/g, "\\'")}')" class="windows-button px-2 py-0.5 bg-yellow-200 text-black">今すぐ教える</button>
                             </div>
                         `;
@@ -370,21 +370,6 @@
                 renderCurrentChat();
             }, 300);
         }
-
-        // 🧠 センシティブ判定 ＆ 思考エンジン
-        function thinkAiResponse(userText) {
-            const lower = userText.toLowerCase();
-
-            // ⚠️ センシティブな内容のガードキーワード
-            const sensitiveKeywords = ["死ね", "自殺", "殺す", "暴力", "武器", "薬物", "アダルト", "エロ", "ハッキング", "爆弾"];
-            const isSensitive = sensitiveKeywords.some(keyword => lower.includes(keyword));
-
-            if (isSensitive) {
-                return {
-                    answer: "私はテキストベースのAIでありそのような質問には答えられません",
-                    isUnknown: false
-                };
-            }
 
             let matchedAnswers = [];
             const greetingKeywords = ["こんにちは", "こんばんは", "おはよう", "はじめまして", "お疲れ様", "どうも", "やあ", "ハロー"];
