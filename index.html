@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>TUM-AI</title>
+    <title>TUM-AI V2.2</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         body {
@@ -56,7 +56,7 @@
 
     <header class="windows-box p-2 mb-4 bg-blue-900 text-white text-sm">
         <div class="flex flex-wrap justify-between items-center gap-2">
-            <span class="font-bold">TUM-AI学習 [V2.0]</span>
+            <span class="font-bold">TUM-AI学習 [V2.2]</span>
             <nav class="flex flex-wrap items-center gap-2">
                 <button onclick="startNewChat()" class="windows-button px-3 py-1 text-black text-xs bg-green-100">＋ 新しいチャット</button>
                 <div class="relative">
@@ -73,6 +73,7 @@
     <main class="flex-1 grid grid-cols-1 md:grid-cols-12 gap-4 max-w-7xl mx-auto w-full">
         <section class="md:col-span-4 windows-box p-4 flex flex-col space-y-4 text-xs">
             <h2 class="bg-blue-800 text-white p-1 font-bold">■ AIの設定 ＆ 知識・学習管理</h2>
+
             <div class="border border-gray-400 p-3 space-y-2 bg-gray-100">
                 <div class="font-bold text-blue-900">[1] AIの基本プロフィール</div>
                 <div>
@@ -85,7 +86,7 @@
                 </div>
                 <div>
                     <label class="block">知らない質問をされた時のデフォルト返事:</label>
-                    <input type="text" id="ai-fallback" autocomplete="off" class="windows-input w-full p-1 text-xs" value="その知識データはありません。学習させてください。">
+                    <input type="text" id="ai-fallback" autocomplete="off" class="windows-input w-full p-1 text-xs" value="すみません、その知識データはありません。教えていただけると嬉しいです。">
                 </div>
                 <button onclick="applyProfileSettings()" class="windows-button px-3 py-1 bg-gray-200 text-black w-full">設定を反映する</button>
             </div>
@@ -103,16 +104,18 @@
                 <button onclick="addQaItem()" class="windows-button px-3 py-1 bg-green-200 text-black w-full font-bold">知識をメモリに書き込む</button>
             </div>
 
-            <div class="flex-1 border border-gray-400 p-2 bg-white overflow-y-auto max-h-60 space-y-1" id="qa-list"></div>
+            <div class="flex-1 border border-gray-400 p-2 bg-white overflow-y-auto max-h-64 space-y-1" id="qa-list"></div>
         </section>
 
-        <section class="md:col-span-8 windows-box p-4 flex flex-col space-y-3 text-xs min-h-[520px]">
+        <section class="md:col-span-8 windows-box p-4 flex flex-col space-y-3 text-xs">
             <h2 class="bg-blue-800 text-white p-1 font-bold flex items-center justify-between">
                 <span id="current-chat-title">■ AI-チャットルーム</span>
                 <span id="chat-status-name" class="text-yellow-300">TUM-AI稼働中</span>
             </h2>
+
             <div id="chat-messages" class="flex-1 windows-input p-3 overflow-y-auto space-y-3 bg-white min-h-[350px] max-h-[65vh]"></div>
-            <form id="chat-form" onsubmit="handleChatSubmit(event)" class="flex gap-2">
+
+            <form id="chat-form" class="flex gap-2">
                 <input type="text" id="chat-input" autocomplete="off" class="windows-input flex-1 p-2 text-xs" placeholder="ここに質問を入力...">
                 <button type="submit" class="windows-button px-3 py-2 bg-blue-200 text-black">送信</button>
             </form>
@@ -125,12 +128,16 @@
                 <span>AI学習データファイル管理</span>
                 <button onclick="closeExportModal()" class="text-white font-bold px-1">×</button>
             </div>
+
             <div>
                 <label class="block mb-1">出力ファイル名:</label>
                 <input type="text" id="export-filename" autocomplete="off" class="windows-input w-full p-1" value="my_ai_data">
             </div>
+
             <button onclick="exportJsonFile()" class="windows-button w-full p-2 bg-blue-100">学習データをJSONファイルとして出力する</button>
+
             <hr class="border-gray-400">
+
             <label class="windows-button w-full p-2 block text-center bg-green-100 cursor-pointer">
                 保存したAIファイルから読み込む
                 <input type="file" id="import-file-input" accept=".json" onchange="importJsonFile(event)" class="hidden">
@@ -139,345 +146,567 @@
     </div>
 
     <script>
+        const DEFAULT_QA = [
+            {
+                id: "1",
+                question: "こんにちは",
+                answer: "こんにちは！システムは正常に稼働しています。"
+            },
+            {
+                id: "2",
+                question: "自己紹介して",
+                answer: "私はAIアシスタントです。いろいろ質問して知識を教えてくださいね。"
+            }
+        ];
+
+        const STORAGE_KEY = "ai_studio_data_v3";
+
         let appState = {
             config: {
                 name: "AIアシスタント",
                 avatar: "🔷",
                 fallback: "すみません、その知識データはありません。教えていただけると嬉しいです。"
             },
-            qaList: [
-                { id: "1", question: "こんにちは", answer: "こんにちは！システムは正常に稼働しています。" },
-                { id: "2", question: "自己紹介して", answer: "私はAIアシスタントです。いろいろ質問して知識を教えてくださいね。" }
-            ],
+            qaList: DEFAULT_QA.map(item => ({...item})),
             sessions: []
         };
 
         let currentSessionId = null;
-        const STORAGE_KEY = "ai_studio_data_v3";
 
-        window.onload = function() {
+        window.addEventListener("DOMContentLoaded", function() {
+            const chatForm = document.getElementById("chat-form");
+            chatForm.addEventListener("submit", handleChatSubmit);
+
             loadLocalState();
-            if (appState.sessions.length === 0) {
-                startNewChat();
-            } else {
-                selectSession(appState.sessions[0].id);
+
+            if (!Array.isArray(appState.qaList) || appState.qaList.length === 0) {
+                appState.qaList = DEFAULT_QA.map(item => ({...item}));
             }
+
+            if (!Array.isArray(appState.sessions)) {
+                appState.sessions = [];
+            }
+
+            appState.sessions = appState.sessions.filter(
+                s => s && s.id && Array.isArray(s.messages)
+            );
+
+            if (appState.sessions.length === 0) {
+                createSession();
+            } else {
+                currentSessionId = appState.sessions[0].id;
+            }
+
             renderAll();
-        };
+            saveLocalState();
+        });
 
         function loadLocalState() {
             try {
                 const saved = localStorage.getItem(STORAGE_KEY);
-                if (saved) {
-                    const parsed = JSON.parse(saved);
-                    if (parsed.config && parsed.qaList) {
-                        appState.config = parsed.config;
-                        appState.qaList = parsed.qaList;
-                        appState.sessions = parsed.sessions || [];
-                    }
+                if (!saved) return;
+
+                const parsed = JSON.parse(saved);
+
+                if (parsed && parsed.config && Array.isArray(parsed.qaList)) {
+                    appState.config = {...appState.config, ...parsed.config};
+                    appState.qaList = parsed.qaList;
+                    appState.sessions = Array.isArray(parsed.sessions)
+                        ? parsed.sessions
+                        : [];
                 }
-            } catch (e) {
-                console.error(e);
+            } catch (error) {
+                console.error("保存データの読み込みに失敗:", error);
             }
         }
 
         function saveLocalState() {
             try {
                 localStorage.setItem(STORAGE_KEY, JSON.stringify(appState));
-            } catch (e) {
-                console.error(e);
+            } catch (error) {
+                console.error("保存に失敗:", error);
+                alert("データを保存できなかった。ブラウザの保存容量や設定を確認してね。");
             }
         }
 
         function renderAll() {
-            document.getElementById('ai-name').value = appState.config.name;
-            document.getElementById('ai-avatar').value = appState.config.avatar;
-            document.getElementById('ai-fallback').value = appState.config.fallback;
-            document.getElementById('chat-status-name').textContent = appState.config.name + "稼働中";
+            document.getElementById("ai-name").value =
+                appState.config.name || "AIアシスタント";
+
+            document.getElementById("ai-avatar").value =
+                appState.config.avatar || "🔷";
+
+            document.getElementById("ai-fallback").value =
+                appState.config.fallback || "";
+
+            document.getElementById("chat-status-name").textContent =
+                (appState.config.name || "TUM-AI") + "稼働中";
+
             renderQaList();
             renderHistoryMenu();
+            renderCurrentChat();
         }
 
         function renderQaList() {
-            const container = document.getElementById('qa-list');
-            document.getElementById('qa-count').textContent = appState.qaList.length;
+            const container = document.getElementById("qa-list");
+
+            document.getElementById("qa-count").textContent =
+                appState.qaList.length;
 
             if (appState.qaList.length === 0) {
-                container.innerHTML = '<div class="text-gray-500 text-center py-2">知識データはありません</div>';
+                container.innerHTML =
+                    '<div class="text-gray-500 text-center py-2">知識データはありません</div>';
                 return;
             }
 
-            let html = '';
-            appState.qaList.forEach(item => {
-                html += `
-                    <div class="border border-gray-300 p-1.5 bg-gray-50 flex justify-between items-center">
-                        <div class="overflow-hidden pr-2">
-                            <b class="text-blue-800">Q: ${escapeHtml(item.question)}</b><br>
-                            <span class="text-gray-700">A: ${escapeHtml(item.answer)}</span>
-                        </div>
-                        <button onclick="deleteQa('${item.id}')" class="windows-button px-1.5 py-0.5 bg-red-100 text-red-700 text-[10px]">削除</button>
+            container.innerHTML = appState.qaList.map(item => `
+                <div class="border border-gray-300 p-1.5 bg-gray-50 flex justify-between items-center gap-2">
+                    <div class="overflow-hidden pr-2 min-w-0">
+                        <b class="text-blue-800">Q: ${escapeHtml(item.question)}</b><br>
+                        <span class="text-gray-700">A: ${escapeHtml(item.answer)}</span>
                     </div>
-                `;
-            });
-            container.innerHTML = html;
+                    <button onclick="deleteQa('${escapeHtml(item.id)}')" class="windows-button px-1.5 py-0.5 bg-red-100 text-red-700 text-[10px] shrink-0">削除</button>
+                </div>
+            `).join("");
         }
 
-        function startNewChat() {
-            const newSession = {
-                id: 'session_' + Date.now(),
-                title: '新しいチャット (' + new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) + ')',
+        function createSession() {
+            const session = {
+                id: "session_" + Date.now() + "_" + Math.random().toString(36).slice(2, 7),
+                title: "新しいチャット (" + new Date().toLocaleTimeString([], {
+                    hour: "2-digit",
+                    minute: "2-digit"
+                }) + ")",
                 messages: []
             };
 
-            appState.sessions.unshift(newSession);
-            if (appState.sessions.length > 10) appState.sessions = appState.sessions.slice(0, 10);
+            appState.sessions.unshift(session);
+            appState.sessions = appState.sessions.slice(0, 10);
+            currentSessionId = session.id;
 
             saveLocalState();
-            selectSession(newSession.id);
+            return session;
+        }
+
+        function startNewChat() {
+            createSession();
+            renderAll();
+            document.getElementById("chat-input").focus();
         }
 
         function selectSession(id) {
+            if (!appState.sessions.some(s => s.id === id)) return;
+
             currentSessionId = id;
+
             saveLocalState();
             renderHistoryMenu();
             renderCurrentChat();
-            document.getElementById('history-menu').classList.add('hidden');
+
+            document.getElementById("history-menu").classList.add("hidden");
         }
 
         function toggleHistoryMenu() {
-            const menu = document.getElementById('history-menu');
-            menu.classList.toggle('hidden');
+            const menu = document.getElementById("history-menu");
+
             renderHistoryMenu();
+            menu.classList.toggle("hidden");
         }
 
         function renderHistoryMenu() {
-            const container = document.getElementById('history-menu');
-            if (appState.sessions.length === 0) {
-                container.innerHTML = '<div class="text-gray-500 text-center py-2">履歴はありません</div>';
+            const container = document.getElementById("history-menu");
+
+            if (!appState.sessions.length) {
+                container.innerHTML =
+                    '<div class="text-gray-500 text-center py-2">履歴はありません</div>';
                 return;
             }
 
-            let html = '';
-            appState.sessions.forEach(s => {
-                const isActive = s.id === currentSessionId ? 'bg-blue-100 border-blue-500 font-bold' : 'bg-gray-50 border-gray-300';
-                html += `
-                    <div onclick="selectSession('${s.id}')" class="p-2 border ${isActive} cursor-pointer flex justify-between items-center text-xs truncate">
-                        <span class="truncate pr-1">${escapeHtml(s.title)}</span>
-                        <button onclick="event.stopPropagation(); deleteSession('${s.id}')" class="text-red-600 hover:text-red-800 font-bold px-1">×</button>
+            container.innerHTML = appState.sessions.map(s => {
+                const active = s.id === currentSessionId
+                    ? "bg-blue-100 border-blue-500 font-bold"
+                    : "bg-gray-50 border-gray-300";
+
+                return `
+                    <div class="p-2 border ${active} flex justify-between items-center gap-2 text-xs">
+                        <button onclick="selectSession('${escapeHtml(s.id)}')" class="text-left flex-1 min-w-0 truncate">
+                            ${escapeHtml(s.title)}
+                        </button>
+                        <button onclick="deleteSession('${escapeHtml(s.id)}')" class="text-red-600 font-bold px-1 shrink-0">×</button>
                     </div>
                 `;
-            });
-            container.innerHTML = html;
+            }).join("");
         }
 
         function deleteSession(id) {
             appState.sessions = appState.sessions.filter(s => s.id !== id);
-            saveLocalState();
-            if (appState.sessions.length === 0) {
-                startNewChat();
-            } else if (currentSessionId === id) {
-                selectSession(appState.sessions[0].id);
-            } else {
-                renderHistoryMenu();
+
+            if (currentSessionId === id) {
+                if (appState.sessions.length) {
+                    currentSessionId = appState.sessions[0].id;
+                } else {
+                    createSession();
+                }
             }
+
+            saveLocalState();
+            renderHistoryMenu();
+            renderCurrentChat();
         }
 
         function getCurrentSession() {
-            return appState.sessions.find(s => s.id === currentSessionId);
+            return appState.sessions.find(
+                s => s.id === currentSessionId
+            ) || null;
         }
 
         function renderCurrentChat() {
             const session = getCurrentSession();
-            const container = document.getElementById('chat-messages');
+            const container = document.getElementById("chat-messages");
+
             if (!session) return;
 
-            document.getElementById('current-chat-title').textContent = '■ ' + session.title;
+            document.getElementById("current-chat-title").textContent =
+                "■ " + session.title;
 
-            if (session.messages.length === 0) {
+            if (!session.messages.length) {
                 container.innerHTML = `
                     <div class="p-2 bg-gray-100 border border-gray-300 rounded">
-                        <b>${appState.config.avatar} ${escapeHtml(appState.config.name)}:</b> 起動完了しました。何か質問してください！
+                        <b>${escapeHtml(appState.config.avatar)} ${escapeHtml(appState.config.name)}:</b>
+                        起動完了しました。何か質問してください！
                     </div>
                 `;
                 return;
             }
 
-            let html = '';
-            session.messages.forEach(msg => {
-                if (msg.sender === 'user') {
-                    html += `<div class="p-2 bg-blue-50 border border-blue-200 text-right"><b>👤 あなた:</b> ${escapeHtml(msg.text)}</div>`;
-                } else {
-                    let teachBox = '';
-                    if (msg.isUnknown) {
-                        teachBox = `
-                            <div class="mt-1 pt-1 border-t border-gray-300 text-[11px] text-red-600 flex justify-between items-center">
-                                <span>▼この質問の答えを知りませんか？▼</span>
-                                <button onclick="teachDirectly('${escapeHtml(msg.unknownQ).replace(/'/g, "\\'")}')" class="windows-button px-2 py-0.5 bg-yellow-200 text-black">今すぐ教える</button>
-                            </div>
-                        `;
-                    }
-                    html += `<div class="p-2 bg-gray-100 border border-gray-300"><b>${appState.config.avatar} ${escapeHtml(msg.name)}:</b> ${escapeHtml(msg.text)} ${teachBox}</div>`;
+            container.innerHTML = session.messages.map((msg, index) => {
+                if (msg.sender === "user") {
+                    return `
+                        <div class="p-2 bg-blue-50 border border-blue-200 text-right">
+                            <b>👤 あなた:</b> ${escapeHtml(msg.text)}
+                        </div>
+                    `;
                 }
-            });
-            container.innerHTML = html;
+
+                const teach = msg.isUnknown
+                    ? `
+                        <div class="mt-1 pt-1 border-t border-gray-300 text-[11px] text-red-600 flex justify-between items-center">
+                            <span>▼この質問の答えを知りませんか？▼</span>
+                            <button onclick="teachFromMessage(${index})" class="windows-button px-2 py-0.5 bg-yellow-200 text-black">
+                                今すぐ教える
+                            </button>
+                        </div>
+                    `
+                    : "";
+
+                return `
+                    <div class="p-2 bg-gray-100 border border-gray-300">
+                        <b>${escapeHtml(appState.config.avatar)} ${escapeHtml(msg.name || appState.config.name)}:</b>
+                        ${escapeHtml(msg.text)}
+                        ${teach}
+                    </div>
+                `;
+            }).join("");
+
             container.scrollTop = container.scrollHeight;
         }
 
         function handleChatSubmit(event) {
             event.preventDefault();
-            const input = document.getElementById('chat-input');
-            const text = input.value.trim();
-            if (!text) return;
 
-            const session = getCurrentSession();
-            if (!session) return;
+            const input = document.getElementById("chat-input");
+            const messageText = input.value.trim();
 
-            if (session.messages.length === 0) {
-                session.title = text.length > 12 ? text.substring(0, 12) + "..." : text;
+            if (!messageText) return;
+
+            let session = getCurrentSession();
+
+            if (!session) {
+                session = createSession();
             }
 
-            session.messages.push({ sender: 'user', text: text });
+            if (session.messages.length === 0) {
+                session.title = messageText.length > 12
+                    ? messageText.slice(0, 12) + "..."
+                    : messageText;
+            }
+
+            session.messages.push({
+                sender: "user",
+                text: messageText
+            });
+
+            input.value = "";
+
             saveLocalState();
             renderCurrentChat();
             renderHistoryMenu();
-            input.value = '';
 
-            setTimeout(() => {
-                const aiResult = thinkAiResponse(text);
-                session.messages.push({
-                    sender: 'ai',
+            const targetSessionId = session.id;
+
+            window.setTimeout(() => {
+                const targetSession = appState.sessions.find(
+                    s => s.id === targetSessionId
+                );
+
+                if (!targetSession) return;
+
+                const result = thinkAiResponse(messageText);
+
+                targetSession.messages.push({
+                    sender: "ai",
                     name: appState.config.name,
-                    text: aiResult.answer,
-                    isUnknown: aiResult.isUnknown,
-                    unknownQ: text
+                    text: result.answer,
+                    isUnknown: result.isUnknown,
+                    unknownQ: messageText
                 });
+
                 saveLocalState();
-                renderCurrentChat();
+
+                if (currentSessionId === targetSessionId) {
+                    renderCurrentChat();
+                }
+
                 renderHistoryMenu();
-            }, 300);
+            }, 250);
         }
 
-        function thinkAiResponse(text) {
-            const normalize = str => str.normalize("NFKC")
+        function normalizeText(value) {
+            return String(value || "")
+                .normalize("NFKC")
                 .toLowerCase()
                 .replace(/お腹/g, "おなか")
                 .replace(/[！!？?。、,.・\s　]/g, "");
-
-            const input = normalize(text);
-            const candidates = appState.qaList
-                .map(item => ({ item, key: normalize(item.question) }))
-                .filter(x => x.key && input.includes(x.key))
-                .sort((a, b) => b.key.length - a.key.length);
-
-            const used = new Array(input.length).fill(false);
-            const matched = [];
-
-            for (const x of candidates) {
-                if (x.key.length === 1 && input !== x.key) continue;
-                const index = input.indexOf(x.key);
-                if (index < 0) continue;
-                const end = index + x.key.length;
-                if (used.slice(index, end).some(Boolean)) continue;
-                for (let i = index; i < end; i++) used[i] = true;
-                matched.push({ index, answer: x.item.answer });
-            }
-
-            if (matched.length) {
-                matched.sort((a, b) => a.index - b.index);
-                const answers = [...new Set(matched.map(x => x.answer))];
-                return { answer: answers.join(" "), isUnknown: false };
-            }
-
-            return { answer: appState.config.fallback, isUnknown: true };
         }
 
-        function teachDirectly(qText) {
-            const ans = prompt(`「${qText}」に対するAIの正しい答えを入力してください：`);
-            if (ans) {
-                appState.qaList.unshift({ id: 'q_' + Date.now(), question: qText, answer: ans });
-                saveLocalState();
-                renderQaList();
-                alert("新しい知識を習得しました！もう一度質問してみてください。");
+        function thinkAiResponse(message) {
+            const input = normalizeText(message);
+
+            const matches = appState.qaList
+                .map(item => ({
+                    item,
+                    key: normalizeText(item.question)
+                }))
+                .filter(x => x.key.length > 0 && input.includes(x.key))
+                .sort((a, b) => b.key.length - a.key.length);
+
+            const selected = [];
+            const occupied = new Array(input.length).fill(false);
+
+            for (const match of matches) {
+                if (match.key.length === 1 && input !== match.key) {
+                    continue;
+                }
+
+                const pos = input.indexOf(match.key);
+
+                if (
+                    pos < 0 ||
+                    occupied.slice(pos, pos + match.key.length).some(Boolean)
+                ) {
+                    continue;
+                }
+
+                for (let i = pos; i < pos + match.key.length; i++) {
+                    occupied[i] = true;
+                }
+
+                if (!selected.some(x => x.answer === match.item.answer)) {
+                    selected.push({
+                        pos,
+                        answer: match.item.answer
+                    });
+                }
             }
+
+            selected.sort((a, b) => a.pos - b.pos);
+
+            if (selected.length) {
+                return {
+                    answer: selected.map(x => x.answer).join(" "),
+                    isUnknown: false
+                };
+            }
+
+            return {
+                answer: appState.config.fallback,
+                isUnknown: true
+            };
+        }
+
+        function teachFromMessage(index) {
+            const session = getCurrentSession();
+            const message = session && session.messages[index];
+
+            if (message && message.unknownQ) {
+                teachDirectly(message.unknownQ);
+            }
+        }
+
+        function teachDirectly(question) {
+            const answer = prompt(
+                `「${question}」に対するAIの正しい答えを入力してね：`
+            );
+
+            if (answer === null || !answer.trim()) return;
+
+            appState.qaList.unshift({
+                id: "q_" + Date.now(),
+                question,
+                answer: answer.trim()
+            });
+
+            saveLocalState();
+            renderQaList();
+
+            alert("新しい知識を習得したよ！もう一度質問してみてね。");
         }
 
         function applyProfileSettings() {
-            appState.config.name = document.getElementById('ai-name').value.trim() || "AIアシスタント";
-            appState.config.avatar = document.getElementById('ai-avatar').value.trim() || "🤖";
-            appState.config.fallback = document.getElementById('ai-fallback').value.trim();
+            appState.config.name =
+                document.getElementById("ai-name").value.trim() ||
+                "AIアシスタント";
+
+            appState.config.avatar =
+                document.getElementById("ai-avatar").value.trim() ||
+                "🔷";
+
+            appState.config.fallback =
+                document.getElementById("ai-fallback").value.trim() ||
+                "その知識データはありません。学習させてください。";
+
             saveLocalState();
             renderAll();
-            alert("設定を保存しました！");
+
+            alert("設定を保存したよ！");
         }
 
         function addQaItem() {
-            const q = document.getElementById('qa-question').value.trim();
-            const a = document.getElementById('qa-answer').value.trim();
-            if (!q || !a) {
-                alert("質問と答えを入力してください！");
+            const question =
+                document.getElementById("qa-question").value.trim();
+
+            const answer =
+                document.getElementById("qa-answer").value.trim();
+
+            if (!question || !answer) {
+                alert("質問と答えの両方を入力してね！");
                 return;
             }
-            appState.qaList.unshift({ id: 'q_' + Date.now(), question: q, answer: a });
+
+            appState.qaList.unshift({
+                id: "q_" + Date.now(),
+                question,
+                answer
+            });
+
             saveLocalState();
             renderQaList();
-            document.getElementById('qa-question').value = '';
-            document.getElementById('qa-answer').value = '';
-            alert("新しい知識をメモリに書き込みました！");
+
+            document.getElementById("qa-question").value = "";
+            document.getElementById("qa-answer").value = "";
+
+            alert("新しい知識をメモリに書き込んだよ！");
         }
 
         function deleteQa(id) {
-            appState.qaList = appState.qaList.filter(item => item.id !== id);
+            appState.qaList = appState.qaList.filter(
+                item => item.id !== id
+            );
+
             saveLocalState();
             renderQaList();
         }
 
         function openExportModal() {
-            document.getElementById('export-modal').classList.remove('hidden');
+            document.getElementById("export-modal").classList.remove("hidden");
         }
 
         function closeExportModal() {
-            document.getElementById('export-modal').classList.add('hidden');
+            document.getElementById("export-modal").classList.add("hidden");
         }
 
         function exportJsonFile() {
-            const filename = (document.getElementById('export-filename').value.trim() || "my_ai") + ".json";
-            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(appState, null, 2));
-            const a = document.createElement('a');
-            a.href = dataStr;
-            a.download = filename;
-            a.click();
-            a.remove();
+            const filename =
+                (document.getElementById("export-filename").value.trim() ||
+                "my_ai_data") + ".json";
+
+            const blob = new Blob(
+                [JSON.stringify(appState, null, 2)],
+                {type: "application/json"}
+            );
+
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement("a");
+
+            link.href = url;
+            link.download = filename;
+            link.click();
+
+            URL.revokeObjectURL(url);
         }
 
-        function importJsonFile(e) {
-            const file = e.target.files[0];
+        function importJsonFile(event) {
+            const file = event.target.files && event.target.files[0];
+
             if (!file) return;
+
             const reader = new FileReader();
-            reader.onload = function(evt) {
+
+            reader.onload = function(e) {
                 try {
-                    const parsed = JSON.parse(evt.target.result);
-                    if (parsed.config && parsed.qaList) {
-                        appState = parsed;
-                        if (!appState.sessions) appState.sessions = [];
-                        saveLocalState();
-                        renderAll();
-                        if (appState.sessions.length > 0) {
-                            selectSession(appState.sessions[0].id);
-                        } else {
-                            startNewChat();
-                        }
-                        closeExportModal();
-                        alert("ファイルを読み込みました！");
+                    const parsed = JSON.parse(e.target.result);
+
+                    if (
+                        !parsed ||
+                        !parsed.config ||
+                        !Array.isArray(parsed.qaList)
+                    ) {
+                        throw new Error("形式が違います");
                     }
-                } catch (err) {
-                    alert("読み込みエラー");
+
+                    appState = {
+                        config: {
+                            ...appState.config,
+                            ...parsed.config
+                        },
+                        qaList: parsed.qaList,
+                        sessions: Array.isArray(parsed.sessions)
+                            ? parsed.sessions
+                            : []
+                    };
+
+                    if (!appState.qaList.length) {
+                        appState.qaList = DEFAULT_QA.map(item => ({...item}));
+                    }
+
+                    if (!appState.sessions.length) {
+                        createSession();
+                    } else {
+                        currentSessionId = appState.sessions[0].id;
+                    }
+
+                    saveLocalState();
+                    renderAll();
+                    closeExportModal();
+
+                    alert("学習データを読み込んだよ！");
+                } catch (error) {
+                    alert("読み込みエラー：正しい学習データJSONを選んでね。");
                 }
+
+                event.target.value = "";
             };
-            reader.readAsText(file);
+
+            reader.readAsText(file, "UTF-8");
         }
 
-        function escapeHtml(str) {
-            return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+        function escapeHtml(value) {
+            return String(value ?? "")
+                .replace(/&/g, "&amp;")
+                .replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;")
+                .replace(/"/g, "&quot;")
+                .replace(/'/g, "&#39;");
         }
     </script>
 </body>
